@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AI Literacy Chatbot</title>
+
+    <style>
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            max-width: 760px;
+            margin: 40px auto;
+            background-color: #fafafa;
+            color: #222;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 10px;
+            color: #444;
+        }
+
+        .disclaimer {
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        #chat {
+            border: 1px solid #ccc;
+            background-color: #fff;
+            padding: 15px;
+            height: 320px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+
+        .user {
+            font-weight: bold;
+            margin-top: 14px;
+        }
+
+        .bot {
+            margin-left: 12px;
+            margin-top: 6px;
+        }
+
+        ul {
+            margin-left: 28px;
+            margin-top: 6px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        input {
+            padding: 6px;
+            font-size: 14px;
+            flex: 1;
+        }
+
+        button {
+            padding: 6px 12px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .examples {
+            font-size: 13px;
+            color: #555;
+            margin-top: 12px;
+        }
+
+        .examples span {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<h2>AI Literacy Chatbot</h2>
+
+<div class="description">
+    This chatbot explains how AI is changing jobs, skills, and education.
+</div>
+
+<div class="disclaimer">
+    This assistant does not provide medical, legal, or financial advice.
+</div>
+
+<div id="chat"></div>
+
+<div class="controls">
+    <input
+        type="text"
+        id="messageInput"
+        placeholder="Type your question and press Enter..."
+    >
+    <button onclick="sendMessage()">Send</button>
+    <button onclick="resetChat()">Reset</button>
+</div>
+
+<div class="examples">
+    <strong>Example questions:</strong>
+    <span>• How is AI changing job skills?</span>
+    <span>• What roles are emerging because of AI?</span>
+    <span>• How should people prepare for AI-related careers?</span>
+</div>
+
+<script>
+async function sendMessage() {
+    const input = document.getElementById("messageInput");
+    const chat = document.getElementById("chat");
+    const message = input.value.trim();
+
+    if (!message) return;
+
+    chat.innerHTML += `<div class="user">You:</div><div>${message}</div>`;
+    input.value = "";
+
+    const thinkingId = "thinking-" + Date.now();
+    chat.innerHTML += `<div id="${thinkingId}" class="bot"><em>Bot is thinking...</em></div>`;
+    chat.scrollTop = chat.scrollHeight;
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message })
+        });
+
+        const data = await response.json();
+
+        const thinkingElement = document.getElementById(thinkingId);
+        if (thinkingElement) thinkingElement.remove();
+
+        let items = [];
+        if (Array.isArray(data.reply)) {
+            items = data.reply;
+        } else {
+            items = String(data.reply)
+                .split(",")
+                .map(s => s.replace(/^[\*\-\•]\s*/, "").trim())
+                .filter(Boolean);
+        }
+
+        const ul = document.createElement("ul");
+        ul.className = "bot";
+
+        items.slice(0, 5).forEach(text => {
+            const li = document.createElement("li");
+            li.textContent = text;
+            ul.appendChild(li);
+        });
+
+        chat.appendChild(ul);
+        chat.scrollTop = chat.scrollHeight;
+
+    } catch (error) {
+        const thinkingElement = document.getElementById(thinkingId);
+        if (thinkingElement) thinkingElement.remove();
+
+        chat.innerHTML += `<div class="bot"><strong>Error:</strong> Something went wrong.</div>`;
+    }
+}
+
+function resetChat() {
+    document.getElementById("chat").innerHTML = "";
+}
+
+// Allow Enter key to submit
+document.getElementById("messageInput").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+        sendMessage();
+    }
+});
+</script>
+
+</body>
+</html>
